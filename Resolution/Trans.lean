@@ -20,13 +20,6 @@ def ShapeSub {n : ℕ} (Γ : Ctx n) (P T : Ty n) : Prop :=
   (∃ S T₀ T₁, P = .all S T₀ ∧ T = .all S T₁ ∧ Sub (Γ.push S) T₀ T₁) ∨
   (∃ x, T = .sel x ∧ Sub Γ (Γ.lookup x) (.bnd P .top))
 
-theorem ShapeSub.sub {n : ℕ} {Γ : Ctx n} {P T : Ty n} (h : ShapeSub Γ P T) : Sub Γ P T := by
-  rcases h with h | ⟨_, _, _, _, rfl, rfl, h1, h2⟩ | ⟨_, _, _, rfl, rfl, h⟩ | ⟨x, rfl, h⟩
-  · subst h; exact .top _
-  · exact .bnd h1 h2
-  · exact .all h
-  · exact .sel_lower x h
-
 /-- Cutting `P <: dN k T` against `T <: U`, given the cuts of `T <: U` against the
 derivations of `P' <: T` that end in a shape-fixing rule. -/
 theorem trans_left {n : ℕ} {Γ : Ctx n} {P Q : Ty n} (D : Sub Γ P Q) :

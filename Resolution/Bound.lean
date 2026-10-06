@@ -545,14 +545,6 @@ theorem bound_or_collapse {n N s n₀ : ℕ} {Γ : Ctx n} {a : Ann n} {S U : Ty 
   show _ ≤ b * treeBound b N
   omega
 
-/-- Lemma 4 under the size part of the invariant. -/
-theorem bound_or_collapse_sized {n N s n₀ : ℕ} {Γ : Ctx n} {a : Ann n} {S U : Ty n}
-    (hI : Inv N Γ a S U) (hs : Sized s Γ S U)
-    (hbase : (Finset.univ.filter fun x => ¬ a.cr x).card ≤ n₀) :
-    (Finset.univ.filter fun x => a.cr x).card ≤ Bnd N s n₀ ∨ ∃ X r, Collapse a.cr Γ X r S U :=
-  bound_or_collapse hI (fun x _ => hs.ctx x) (le_trans (Ty.card_occ_le_size S) hs.left)
-    hs.right.card_occ hbase
-
 end
 
 end Dsub

@@ -34,12 +34,6 @@ def pushC (g t : ℕ) : ℕ := Nat.pair g t + 1
 @[simp] theorem headC_pushC (g t : ℕ) : headC (pushC g t) = t := by
   simp [headC, pushC]
 
-theorem Ctx.code_injective {n : ℕ} : Function.Injective (Ctx.code (n := n)) := by
-  intro Γ Δ h
-  have := Ctx.decode_code Γ
-  rw [h, Ctx.decode_code] at this
-  exact (Option.some.inj this).symm
-
 /-- The code of the type of variable `x`, weakened into the scope of the whole context. -/
 def lookupC (g x : ℕ) : ℕ := weakenC^[x + 1] (headC (tailC^[x] g))
 
@@ -207,26 +201,6 @@ theorem Judgment.decode_eq_some_iff {m : ℕ} {j : Judgment} :
     Judgment.decode m = some j ↔ j.code = m :=
   ⟨Judgment.code_of_decode, fun h => h ▸ Judgment.decode_code j⟩
 
-theorem Judgment.decode_isSome_iff {m : ℕ} : (Judgment.decode m).isSome = jValidC m := by
-  rw [Bool.eq_iff_iff, jValidC_iff, Option.isSome_iff_exists]
-  simp only [Judgment.decode_eq_some_iff]
-
-/-- The subtyping problem on the code of a judgment is the judgment's holding. -/
-theorem Subtyping_code {j : Judgment} : Subtyping j.code ↔ j.Holds := by
-  constructor
-  · rintro ⟨j', hj', h⟩
-    rw [Judgment.decode_code, Option.some.injEq] at hj'
-    rw [hj']; exact h
-  · intro h; exact ⟨j, Judgment.decode_code j, h⟩
-
-/-- Off judgment codes, the subtyping problem is false. -/
-theorem not_Subtyping_of_not_valid {m : ℕ} (h : jValidC m = false) : ¬ Subtyping m := by
-  rintro ⟨j, hj, -⟩
-  rw [Judgment.decode_eq_some_iff] at hj
-  subst hj
-  rw [jValidC_code] at h
-  exact Bool.noConfusion h
-
 /-! ### Type codes taken apart -/
 
 /-- The constructor of a type code: `0` top, `1` bot, `2` sel, `3` bnd, `4` all. -/
@@ -263,32 +237,6 @@ def selC (x : ℕ) : ℕ := 3 * x + 2
   simp [tyArg₁, allC, show (3 * Nat.pair s t + 2) / 3 = Nat.pair s t by omega]
 @[simp] theorem tyArg₂_allC (s t : ℕ) : tyArg₂ (allC s t) = t := by
   simp [tyArg₂, allC, show (3 * Nat.pair s t + 2) / 3 = Nat.pair s t by omega]
-
-theorem tyTag_le (c : ℕ) : tyTag c ≤ 4 := by unfold tyTag; split_ifs <;> omega
-
-theorem eq_zero_of_tyTag {c : ℕ} (h : tyTag c = 0) : c = 0 := by
-  unfold tyTag at h; split_ifs at h <;> omega
-
-theorem eq_one_of_tyTag {c : ℕ} (h : tyTag c = 1) : c = 1 := by
-  unfold tyTag at h; split_ifs at h <;> omega
-
-theorem eq_selC_of_tyTag {c : ℕ} (h : tyTag c = 2) : c = selC (tyArg₁ c) := by
-  unfold tyTag at h
-  split_ifs at h with hc
-  · omega
-  · unfold tyArg₁ selC; rw [if_pos (by omega)]; omega
-
-theorem eq_bndC_of_tyTag {c : ℕ} (h : tyTag c = 3) : c = bndC (tyArg₁ c) (tyArg₂ c) := by
-  unfold tyTag at h
-  split_ifs at h with hc
-  · omega
-  · unfold tyArg₁ tyArg₂ bndC; rw [if_neg (by omega), Nat.pair_unpair]; omega
-
-theorem eq_allC_of_tyTag {c : ℕ} (h : tyTag c = 4) : c = allC (tyArg₁ c) (tyArg₂ c) := by
-  unfold tyTag at h
-  split_ifs at h with hc
-  · omega
-  · unfold tyArg₁ tyArg₂ allC; rw [if_neg (by omega), Nat.pair_unpair]; omega
 
 /-! ### Primitive recursion -/
 
@@ -361,25 +309,11 @@ theorem tyArg₂_primrec : Primrec tyArg₂ :=
 
 theorem bndC_primrec : Primrec₂ bndC :=
   nat_add.comp (nat_mul.comp (const 3) Primrec₂.natPair) (const 3)
-theorem allC_primrec : Primrec₂ allC :=
-  nat_add.comp (nat_mul.comp (const 3) Primrec₂.natPair) (const 4)
-theorem selC_primrec : Primrec selC := nat_add.comp (nat_mul.comp (const 3) .id) (const 2)
-
 /-! ### Decision procedures -/
 
 /-- A predicate decided by a primitive recursive Boolean function is computable. -/
 theorem computablePred_of_primrec {p : ℕ → Prop} {f : ℕ → Bool} (hf : Primrec f)
     (h : ∀ m, p m ↔ f m = true) : ComputablePred p :=
   ComputablePred.computable_iff.2 ⟨f, hf.to_comp, funext fun m => propext (h m)⟩
-
-/-- Subtyping is decidable once it is characterised as membership of the query in the least
-fixpoint of a primitive recursive rule check over a primitive recursive universe. -/
-theorem Subtyping_computable_of_lfp {fires : ℕ → List ℕ → ℕ → Bool} {Mb : ℕ → ℕ}
-    (hf : Primrec fun p : ℕ × List ℕ × ℕ => fires p.1 p.2.1 p.2.2) (hM : Primrec Mb)
-    (h : ∀ m, Subtyping m ↔ jValidC m = true ∧ m ∈ lfpList fires Mb m) :
-    ComputablePred Subtyping :=
-  computablePred_of_primrec
-    (Primrec.and.comp jValidC_primrec (lfpList_mem_primrec hf hM .id))
-    fun m => by rw [h m, Bool.and_eq_true, decide_eq_true_iff]; rfl
 
 end Dsub

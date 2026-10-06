@@ -136,12 +136,6 @@ def GRuleB (L s : ℕ) (R : List ℕ) {n : ℕ} (Γ : Ctx n) (P W : Ty n) : Prop
 def GRuleS (s : ℕ) (R : List ℕ) {n : ℕ} (Γ : Ctx n) (P T : Ty n) : Prop :=
   RuleS Γ (tysUpTo n s) (BofR s R Γ) (SofR s R Γ) P T
 
-theorem FRuleB_iff {L s : ℕ} {R : List ℕ} {i : Fin (Φ L s).size} {P W : Ty ((Φ L s).dim i)} :
-    FRuleB (factsOf L s R) i P W ↔ GRuleB L s R ((Φ L s).ctx i) P W := Iff.rfl
-
-theorem FRuleS_iff {L s : ℕ} {R : List ℕ} {i : Fin (Φ L s).size} {P T : Ty ((Φ L s).dim i)} :
-    FRuleS (factsOf L s R) i P T ↔ GRuleS s R ((Φ L s).ctx i) P T := Iff.rfl
-
 theorem mem_BofR {s : ℕ} {R : List ℕ} {n : ℕ} {Γ : Ctx n} {A B : Ty n} :
     (A, B) ∈ BofR s R Γ ↔
       A.size ≤ s ∧ B ∈ ext (tysUpTo n s) ∧ bcodeC n Γ.code A.code B.code ∈ R := by

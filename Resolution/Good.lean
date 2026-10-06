@@ -1,4 +1,5 @@
-import Resolution.Skeleton
+import Resolution.Sized
+import Resolution.Collapse
 import Resolution.Counts
 
 /-!
@@ -69,13 +70,6 @@ theorem Ty.occCount_le_size {n : ℕ} (T : Ty n) : T.occCount ≤ T.size := by
     rw [Set.ofPred_or]
     omega
 
-theorem Ty.occCount_rename {n m : ℕ} {T : Ty n} {f : Rename n m}
-    (hf : Function.Injective f.var) : (T.rename f).occCount = T.occCount := by
-  unfold Ty.occCount
-  have : {y | (T.rename f).Occ y} = f.var '' {x | T.Occ x} := by
-    ext y; simp only [Ty.occ_rename, Set.mem_ofPred_eq, Set.mem_image]; aesop
-  rw [this, Set.ncard_image_of_injective _ hf]
-
 theorem Ty.RSized.occCount_le {n s : ℕ} {T : Ty n} (h : T.RSized s) : T.occCount ≤ s := by
   induction T with
   | top => exact le_trans (Ty.occCount_le_size _) h
@@ -126,39 +120,15 @@ theorem Ann.nCreated_root {n : ℕ} : (Ann.root : Ann n).nCreated = 0 := by
 
 /-! ### Good judgments -/
 
-/-- Good judgments: an annotation with the invariant for `N`, sizes at most `s`, and at
-most `n₀` non-created variables. -/
-def Good (N s n₀ : ℕ) (j : Judgment) : Prop :=
-  ∃ a : Ann j.n, Inv N j.Γ a j.S j.U ∧ Sized s j.Γ j.S j.U ∧ a.nBase ≤ n₀
-
 /-- Good judgments with at most `B` created variables. -/
 def GoodB (N s n₀ B : ℕ) (j : Judgment) : Prop :=
   ∃ a : Ann j.n, Inv N j.Γ a j.S j.U ∧ Sized s j.Γ j.S j.U ∧ a.nBase ≤ n₀ ∧ a.nCreated ≤ B
-
-theorem Good.root {n N s : ℕ} {Γ : Ctx n} {S U : Ty n} (hS : S.nu ≤ N) (hU : U.nu ≤ N)
-    (hΓ : ∀ x, (Γ.lookup x).nu ≤ N) (hS' : S.size ≤ s) (hU' : U.size ≤ s)
-    (hΓ' : ∀ x, (Γ.lookup x).size ≤ s) : Good N s n ⟨Γ, S, U⟩ :=
-  ⟨Ann.root, Inv.root hS hU hΓ, Sized.root hS' hU' hΓ', le_of_eq Ann.nBase_root⟩
 
 theorem GoodB.root {n N s B : ℕ} {Γ : Ctx n} {S U : Ty n} (hS : S.nu ≤ N) (hU : U.nu ≤ N)
     (hΓ : ∀ x, (Γ.lookup x).nu ≤ N) (hS' : S.size ≤ s) (hU' : U.size ≤ s)
     (hΓ' : ∀ x, (Γ.lookup x).size ≤ s) : GoodB N s n B ⟨Γ, S, U⟩ :=
   ⟨Ann.root, Inv.root hS hU hΓ, Sized.root hS' hU' hΓ', le_of_eq Ann.nBase_root,
     by rw [Ann.nCreated_root]; exact Nat.zero_le _⟩
-
-theorem GoodB.good {N s n₀ B : ℕ} {j : Judgment} (h : GoodB N s n₀ B j) : Good N s n₀ j :=
-  let ⟨a, h1, h2, h3, _⟩ := h; ⟨a, h1, h2, h3⟩
-
-/-- Lemma 2 for good judgments. -/
-theorem Good.backClosed (N s n₀ : ℕ) : BackClosed (Good N s n₀) where
-  bnd := fun ⟨a, hI, hs, hb⟩ => ⟨⟨a, hI.bnd.1, hs.bnd.1, hb⟩, ⟨a, hI.bnd.2, hs.bnd.2, hb⟩⟩
-  all := fun ⟨a, hI, hs, hb⟩ =>
-    ⟨_, hI.all, hs.all, by rw [Ann.enter, Ann.nBase_push]; exact hb⟩
-  sel_lower := fun ⟨a, hI, hs, hb⟩ => ⟨a, hI.sel_lower, hs.sel_lower, hb⟩
-  sel_upper := fun ⟨a, hI, hs, hb⟩ => ⟨a, hI.sel_upper, hs.sel_upper, hb⟩
-  bad_bounds := fun ⟨a, hI, hs, hb⟩ x =>
-    ⟨⟨a, (hI.bad_bounds x).1, (hs.bad_bounds x).1, hb⟩,
-     ⟨a, (hI.bad_bounds x).2, (hs.bad_bounds x).2, hb⟩⟩
 
 /-- The rules other than `all` keep the annotation, hence the count of created variables. -/
 theorem GoodB.bnd {N s n₀ B n : ℕ} {Γ : Ctx n} {S₁ U₁ S₂ U₂ : Ty n}
@@ -250,22 +220,5 @@ theorem normalise {N s n₀ Bnd : ℕ} (L4 : Lemma4 N s n₀ Bnd) :
       exact ⟨z, by simp [hz, θ]⟩
     · intro y; rw [hcr y]; rfl
     · intro h; rw [hiff h, hiff' h]
-
-/-- Normalisation of good judgments. -/
-theorem Good.normalise {N s n₀ Bnd : ℕ} (L4 : Lemma4 N s n₀ Bnd) {j : Judgment}
-    (hj : Good N s n₀ j) :
-    ∃ (j' : Judgment) (ι : Rename j'.n j.n), GoodB N s n₀ Bnd j' ∧
-      Function.Injective ι.var ∧ ι.IsCtxMorph j'.Γ j.Γ ∧ j'.S.rename ι = j.S ∧
-      j'.U.rename ι = j.U ∧ ∀ h, SubH h j.Γ j.S j.U ↔ SubH h j'.Γ j'.S j'.U := by
-  obtain ⟨a, hI, hs, hb⟩ := hj
-  obtain ⟨m, Δ, S', U', a', ι, hI', hs', hb', hB', hinj, hmor, eS, eU, -, -, hiff⟩ :=
-    Dsub.normalise L4 _ rfl hI hs hb
-  exact ⟨⟨Δ, S', U'⟩, ι, ⟨a', hI', hs', hb', hB'⟩, hinj, hmor, eS, eU, hiff⟩
-
-/-- A good judgment with at most `Bnd` created variables has at most `n₀ + Bnd` variables. -/
-theorem GoodB.scope_le {N s n₀ B : ℕ} {j : Judgment} (h : GoodB N s n₀ B j) : j.n ≤ n₀ + B := by
-  obtain ⟨a, -, -, hb, hc⟩ := h
-  have := a.nBase_add_nCreated
-  omega
 
 end Dsub

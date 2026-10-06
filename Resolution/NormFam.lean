@@ -4,8 +4,7 @@ import Resolution.FamilyEnum
 /-!
 Good judgments with at most `Bnd` created variables satisfy the conditions `Family.Norm` of
 saturation over the family `Φ (n₀ + Bnd) s` of all contexts with at most `n₀ + Bnd`
-variables and types of size at most `s`, given Lemma 4.  Hence `decideFam` decides every
-input judgment within the bounds.
+variables and types of size at most `s`, given Lemma 4.
 -/
 
 namespace Dsub
@@ -45,19 +44,5 @@ theorem GoodB.norm {N s n₀ Bnd : ℕ} (L4 : Lemma4 N s n₀ Bnd) :
       (hiff h).1 d, ⟨a', hI', hs', hb'', hB'⟩⟩
     · rw [← Ty.size_rename S' ι, eS]; omega
     · rw [← Ty.size_rename U' ι, eU]; omega
-
-/-- Given Lemma 4 for the bounds `N`, `s`, `n₀`, `Bnd`, `decideFam (n₀ + Bnd) s` decides
-every judgment over a context of `n₀` variables whose types have `∀`-nesting at most `N`
-and size at most `s`. -/
-theorem decideFam_iff_of_lemma4 {N s n₀ Bnd : ℕ} (L4 : Lemma4 N s n₀ Bnd) (hs : 1 ≤ s)
-    {Γ : Ctx n₀} {S U : Ty n₀} (hS : S.nu ≤ N) (hU : U.nu ≤ N)
-    (hΓ : ∀ x, (Γ.lookup x).nu ≤ N) (hS' : S.size ≤ s) (hU' : U.size ≤ s)
-    (hΓ' : ∀ x, (Γ.lookup x).size ≤ s) :
-    decideFam (n₀ + Bnd) s ⟨Γ, S, U⟩ = true ↔ Sub Γ S U := by
-  constructor
-  · exact decideFam_sound
-  · intro h
-    exact decideFam_complete hs (GoodB.norm L4) (j := ⟨Γ, S, U⟩) (Nat.le_add_right _ _)
-      (Ctx.bounded_of_lookup hΓ') hS' hU' (GoodB.root hS hU hΓ hS' hU' hΓ') h
 
 end Dsub

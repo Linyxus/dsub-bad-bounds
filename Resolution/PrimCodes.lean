@@ -246,20 +246,13 @@ def Rename.toList {n m : ℕ} (f : Rename n m) : List ℕ :=
 
 theorem Rename.toList_getD {n m : ℕ} (f : Rename n m) (x : BVar n) (d : ℕ) :
     f.toList.getD x.toNat d = (f.var x).toNat := by
-  rw [Rename.toList, getD_map_range _ _ x.toNat_lt, dif_pos x.toNat_lt, BVar.ofLt_toNat]
+  rw [Rename.toList, getD_map_range _ _ x.toNat_lt, dite_eq_left x.toNat_lt, BVar.ofLt_toNat]
 
 theorem Rename.toList_lt {n m : ℕ} (f : Rename n m) : ∀ i ∈ f.toList, i < m := by
   intro i hi
   simp only [Rename.toList, List.mem_map, List.mem_range] at hi
   obtain ⟨j, hj, rfl⟩ := hi
-  rw [dif_pos hj]; exact BVar.toNat_lt _
-
-theorem Rename.toList_injective {n m : ℕ} : Function.Injective (Rename.toList (n := n) (m := m)) := by
-  intro f g h
-  apply Rename.ext
-  intro x
-  apply BVar.toNat_injective
-  rw [← Rename.toList_getD f x 0, ← Rename.toList_getD g x 0, h]
+  rw [dite_eq_left hj]; exact BVar.toNat_lt _
 
 /-- The renaming with a given list of images. -/
 def Rename.ofList {n m : ℕ} (l : List ℕ) (h : ∀ i < n, l.getD i 0 < m) : Rename n m where
@@ -274,12 +267,8 @@ theorem Rename.toList_ofList {n m : ℕ} (l : List ℕ) (h : ∀ i < n, l.getD i
   apply List.ext_getElem (by simp [hl])
   intro i h1 h2
   simp only [Rename.toList, List.getElem_map, List.getElem_range]
-  rw [dif_pos (by simpa using h1), Rename.ofList_var_toNat, BVar.toNat_ofLt]
+  rw [dite_eq_left (by simpa using h1), Rename.ofList_var_toNat, BVar.toNat_ofLt]
   simp [List.getD_eq_getElem?_getD, h2]
-
-theorem Rename.ofList_toList {n m : ℕ} (f : Rename n m)
-    (h : ∀ i < n, f.toList.getD i 0 < m) : Rename.ofList f.toList h = f :=
-  Rename.toList_injective (Rename.toList_ofList _ _ (by simp))
 
 theorem Rename.getD_lt_of_mem {n m : ℕ} {l : List ℕ} (hl : l.length = n)
     (hm : ∀ i ∈ l, i < m) : ∀ i < n, l.getD i 0 < m := by

@@ -17,11 +17,6 @@ collapse trivial: restricting the forest keeps the labels.)
 
 namespace Dsub
 
-/-- Contexts extending a base context by appended variables. -/
-inductive Ctx.Extends {n₀ : ℕ} (Γ₀ : Ctx n₀) : {n : ℕ} → Ctx n → Prop where
-  | refl : Ctx.Extends Γ₀ Γ₀
-  | push {n : ℕ} {Γ : Ctx n} (T : Ty n) : Ctx.Extends Γ₀ Γ → Ctx.Extends Γ₀ (Γ.push T)
-
 /-- An annotation: the created variables, a forest on them (by its strict ancestor relation)
 and depth labels increasing along the forest. -/
 structure Ann (n : ℕ) where

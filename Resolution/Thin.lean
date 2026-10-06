@@ -1,4 +1,4 @@
-import Resolution.Decide
+import Resolution.Rules
 
 /-!
 Occurrences, `∀`-nesting, and removing variables from a context.
@@ -81,9 +81,6 @@ theorem Ty.occ_weaken {n : ℕ} {T : Ty n} {y : BVar (n + 1)} :
   rw [Ty.weaken, Ty.occ_rename]
   simp only [Rename.succ_var]
   exact ⟨fun ⟨x, h1, h2⟩ => ⟨x, h1.symm, h2⟩, fun ⟨x, h1, h2⟩ => ⟨x, h1.symm, h2⟩⟩
-
-theorem Ty.not_occ_here_weaken {n : ℕ} {T : Ty n} : ¬ T.weaken.Occ .here := by
-  rw [Ty.occ_weaken]; rintro ⟨x, h, _⟩; nomatch h
 
 @[simp] theorem Ty.occ_there_weaken {n : ℕ} {T : Ty n} {x : BVar n} :
     T.weaken.Occ (.there x) ↔ T.Occ x := by
@@ -261,14 +258,6 @@ theorem Ty.unthin_of_occ {m n : ℕ} {θ : Thin m n} {T : Ty n}
         exact ⟨.there y, by simp [Thin.var, hy]⟩
     obtain ⟨T', hT⟩ := ihT this
     exact ⟨.all S' T', by simp [Ty.unthin, hS, hT]⟩
-
-theorem Ty.unthin_rename_self {m n : ℕ} (θ : Thin m n) (T : Ty m) :
-    (T.rename θ.ren).unthin θ = some T := by
-  obtain ⟨T', h⟩ := Ty.unthin_of_occ (θ := θ) (T := T.rename θ.ren) (by
-    intro x hx
-    obtain ⟨y, rfl, _⟩ := Ty.occ_rename.1 hx
-    exact ⟨y, rfl⟩)
-  rw [h, Ty.rename_inj (θ.var_injective) (Ty.unthin_rename h)]
 
 /-- Removes the variables a thinning misses from a context, if no kept variable's type
 mentions a removed one. -/

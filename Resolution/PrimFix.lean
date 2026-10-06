@@ -40,11 +40,6 @@ theorem mem_lfpIter_succ {m i j : ℕ} :
     j ∈ lfpIter fires Mb m (i + 1) ↔ j < Mb m ∧ fires m (lfpIter fires Mb m i) j = true := by
   simp [lfpIter_succ]
 
-theorem lt_of_mem_lfpIter {m i j : ℕ} (h : j ∈ lfpIter fires Mb m i) : j < Mb m := by
-  cases i with
-  | zero => simp at h
-  | succ i => exact (mem_lfpIter_succ.1 h).1
-
 theorem lfpIter_nodup (m i : ℕ) : (lfpIter fires Mb m i).Nodup := by
   cases i with
   | zero => simp
@@ -88,12 +83,6 @@ theorem lfpIter_mono_succ {m : ℕ} :
     intro x hx
     obtain ⟨hlt, hf⟩ := mem_lfpIter_succ.1 hx
     exact mem_lfpIter_succ.2 ⟨hlt, hmono _ _ _ _ ih hf⟩
-
-theorem lfpIter_mono {m i i' : ℕ} (h : i ≤ i') :
-    ∀ x ∈ lfpIter fires Mb m i, x ∈ lfpIter fires Mb m i' := by
-  induction h with
-  | refl => exact fun _ hx => hx
-  | step _ ih => exact fun x hx => lfpIter_mono_succ hmono _ x (ih x hx)
 
 /-- Two consecutive iterates with the same members: from then on nothing changes. -/
 theorem lfpIter_stable {m i : ℕ}

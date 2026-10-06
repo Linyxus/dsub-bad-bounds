@@ -2,7 +2,8 @@ import Resolution.Bound
 import Resolution.Good
 
 /-!
-Lemma 4 in the shape of `Lemma4`, and the bound `Bnd` is primitive recursive.
+Lemma 4 in the form `Lemma4` that `Good` takes as a hypothesis, and the bound `Bnd` is
+primitive recursive.
 -/
 
 namespace Dsub

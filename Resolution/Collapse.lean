@@ -150,13 +150,6 @@ theorem Collapse.exact' (c : Collapse cr Γ X r S U) :
   obtain ⟨U', hU⟩ := c.unthin_right
   exact ⟨Δ, S', U', hΔ, hS, hU, c.exact hΔ hS hU⟩
 
-theorem Collapse.sub_iff (c : Collapse cr Γ X r S U) {Δ : Ctx (thinOf X).1}
-    {S' U' : Ty (thinOf X).1} (hΔ : Γ.restrict (thinOf X).2 = some Δ)
-    (hS : S.unthin (thinOf X).2 = some S') (hU : U.unthin (thinOf X).2 = some U') :
-    Sub Γ S U ↔ Sub Δ S' U' := by
-  rw [Sub.iff_subH, Sub.iff_subH]
-  exact exists_congr fun h => c.exact hΔ hS hU h
-
 end
 
 /-! ### The annotation after a collapse -/
@@ -214,14 +207,5 @@ theorem Inv.restrict {m n N : ℕ} {Γ : Ctx n} {a : Ann n} {θ : Thin m n} {Δ 
     · exact Or.inr (Or.inl e)
     · exact Or.inr (Or.inr e)
   · intro x hx; exact h.dep_le _ hx
-
-/-- Removing a collapse keeps the invariant, with the restricted annotation. -/
-theorem Collapse.inv {n N : ℕ} {Γ : Ctx n} {a : Ann n} {X : BVar n → Bool}
-    {r : BVar n → BVar n} {S U : Ty n} (_ : Collapse a.cr Γ X r S U)
-    {Δ : Ctx (thinOf X).1} {S' U' : Ty (thinOf X).1}
-    (hΔ : Γ.restrict (thinOf X).2 = some Δ) (hS : S.unthin (thinOf X).2 = some S')
-    (hU : U.unthin (thinOf X).2 = some U') (h : Inv N Γ a S U) :
-    Inv N Δ (a.restrict (thinOf X).2) S' U' :=
-  h.restrict hΔ hS hU
 
 end Dsub

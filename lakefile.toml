@@ -1,5 +1,5 @@
-name = "task"
-defaultTargets = ["Dsub", "Resolution", "Sanity"]
+name = "dsub-bad-bounds"
+defaultTargets = ["Resolution"]
 
 [leanOptions]
 pp.unicode.fun = true
@@ -11,14 +11,11 @@ name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.34.0"
 
-# Frozen definitions: types, contexts and subtyping of kernel D<: with bad bounds, and the
+# The definitions: types, contexts and subtyping of kernel D<: with bad bounds, and the
 # numbering of judgments.
 [[lean_lib]]
 name = "Dsub"
 
-# The agent's proofs. `Resolution.lean` states the two alternatives.
+# The proof.
 [[lean_lib]]
 name = "Resolution"
-
-[[lean_lib]]
-name = "Sanity"

@@ -2,8 +2,7 @@ import Resolution.Family
 
 /-!
 The concrete family `Φ L s`: every context of at most `L` variables whose types have size at
-most `s`, each with the set of all types of size at most `s` over it.  A decision procedure on
-judgments runs `famDecide` at the member for the judgment's context.
+most `s`, each with the set of all types of size at most `s` over it.
 -/
 
 namespace Dsub
@@ -148,45 +147,9 @@ theorem Φ.wf {L s : ℕ} (hs : 1 ≤ s) : (Φ L s).WF where
     simp only [Ty.size] at h
     exact ⟨Φ.mem_F.2 (by omega), Φ.mem_F.2 (by omega)⟩
 
-/-! ### Deciding judgments -/
-
-/-- A type moved along an equality of scopes. -/
-def Ty.cast {m n : ℕ} (h : m = n) (T : Ty n) : Ty m := h ▸ T
-
-@[simp] theorem Ty.cast_rfl {n : ℕ} (T : Ty n) : Ty.cast rfl T = T := rfl
-
-/-- Decides a judgment within the bounds `L`, `s` (false outside them): runs `famDecide` at the
-member for its context. -/
-def decideFam (L s : ℕ) (j : Judgment) : Bool :=
-  decide (j.S.size ≤ s ∧ j.U.size ≤ s ∧
-    ∃ i : Fin (Φ L s).size, ∃ e : (⟨(Φ L s).dim i, (Φ L s).ctx i⟩ : (n : ℕ) × Ctx n) = ⟨j.n, j.Γ⟩,
-      (Φ L s).famDecide i (Ty.cast (congrArg Sigma.fst e) j.S)
-        (Ty.cast (congrArg Sigma.fst e) j.U) = true)
-
-theorem decideFam_sound {L s : ℕ} {j : Judgment} (h : decideFam L s j = true) : j.Holds := by
-  obtain ⟨Γ, S, U⟩ := j
-  obtain ⟨-, -, i, e, h⟩ := of_decide_eq_true h
-  have hsub := (Φ L s).famDecide_sound h
-  cases e
-  exact hsub
-
 /-- A predicate on judgments, read on the members of `Φ L s`. -/
 def Family.goodOf (Φ : Family) (G : Judgment → Prop) (i : Fin Φ.size) (P U : Ty (Φ.dim i)) :
     Prop :=
   G ⟨Φ.ctx i, P, U⟩
-
-theorem decideFam_complete {L s : ℕ} {G : Judgment → Prop} (hs : 1 ≤ s)
-    (hN : (Φ L s).Norm ((Φ L s).goodOf G)) {j : Judgment} (hn : j.n ≤ L)
-    (hΓ : j.Γ.Bounded s) (hS : j.S.size ≤ s) (hU : j.U.size ≤ s) (hg : G j) (h : j.Holds) :
-    decideFam L s j = true := by
-  obtain ⟨Γ, S, U⟩ := j
-  obtain ⟨i, e⟩ := Φ.exists_member hn hΓ
-  refine decide_eq_true ⟨hS, hU, i, e, ?_⟩
-  revert hS hU hg h
-  generalize congrArg Sigma.fst e = e'
-  cases e
-  intro hS hU hg h
-  exact (Φ L s).famDecide_complete hN (Φ.wf hs) hg (Φ.mem_F.2 hS)
-    (mem_ext_of_mem (Φ.mem_F.2 hU)) h
 
 end Dsub

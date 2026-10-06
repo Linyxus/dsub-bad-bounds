@@ -134,60 +134,6 @@ section
 
 open Classical
 
-theorem Ty.card_occ_mono {n : ℕ} {T T' : Ty n} (h : ∀ x, T.Occ x → T'.Occ x) :
-    (Finset.univ.filter fun x => T.Occ x).card ≤ (Finset.univ.filter fun x => T'.Occ x).card :=
-  Finset.card_le_card (fun x hx => by
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hx ⊢
-    exact h x hx)
-
-/-- A type mentions at most as many variables as it has constructors. -/
-theorem Ty.card_occ_le_size {n : ℕ} (T : Ty n) :
-    (Finset.univ.filter fun x => T.Occ x).card ≤ T.size := by
-  induction T with
-  | top => simp [Ty.size]
-  | bot => simp [Ty.size]
-  | sel y =>
-    have : (Finset.univ.filter fun x => (Ty.sel y).Occ x) ⊆ {y} := fun x hx => by simpa using hx
-    exact le_trans (Finset.card_le_card this) (by simp [Ty.size])
-  | bnd S U ihS ihU =>
-    have : (Finset.univ.filter fun x => (Ty.bnd S U).Occ x) ⊆
-        (Finset.univ.filter fun x => S.Occ x) ∪ (Finset.univ.filter fun x => U.Occ x) :=
-      fun x hx => by simpa using hx
-    have h1 := Finset.card_le_card this
-    have h2 := Finset.card_union_le (Finset.univ.filter fun x => S.Occ x)
-      (Finset.univ.filter fun x => U.Occ x)
-    simp only [Ty.size]
-    omega
-  | @all n S T ihS ihT =>
-    have hT : (Finset.univ.filter fun x : BVar n => T.Occ (.there x)).card ≤
-        (Finset.univ.filter fun y => T.Occ y).card :=
-      Finset.card_le_card_of_injOn BVar.there (fun x hx => by simpa using hx)
-        (fun x _ y _ e => BVar.there.inj e)
-    have : (Finset.univ.filter fun x => (Ty.all S T).Occ x) ⊆
-        (Finset.univ.filter fun x => S.Occ x) ∪
-          (Finset.univ.filter fun x : BVar n => T.Occ (.there x)) :=
-      fun x hx => by simpa using hx
-    have h1 := Finset.card_le_card this
-    have h2 := Finset.card_union_le (Finset.univ.filter fun x => S.Occ x)
-      (Finset.univ.filter fun x : BVar n => T.Occ (.there x))
-    simp only [Ty.size]
-    omega
-
-/-- A right side sized by `s` mentions at most `s` variables. -/
-theorem Ty.RSized.card_occ {n s : ℕ} {T : Ty n} (h : T.RSized s) :
-    (Finset.univ.filter fun x => T.Occ x).card ≤ s := by
-  induction T with
-  | top => exact le_trans (Ty.card_occ_le_size _) h
-  | bot => exact le_trans (Ty.card_occ_le_size _) h
-  | sel y => exact le_trans (Ty.card_occ_le_size _) h
-  | bnd L H _ ihH =>
-    rcases h with h | ⟨rfl, h⟩ | ⟨rfl, h⟩
-    · exact le_trans (Ty.card_occ_le_size _) h
-    · exact le_trans (Ty.card_occ_mono (T' := H) (fun x hx => by simpa using hx)) (ihH h)
-    · exact le_trans (Ty.card_occ_mono (T' := L) (fun x hx => by simpa using hx))
-        (le_trans (Ty.card_occ_le_size _) h)
-  | all S T => exact le_trans (Ty.card_occ_le_size _) h
-
 end
 
 end Dsub

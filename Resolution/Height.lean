@@ -42,17 +42,6 @@ theorem SubH.mono {n h h' : ℕ} {Γ : Ctx n} {S U : Ty n} (d : SubH h Γ S U) (
   | refl => exact d
   | step _ ih => exact ih.succ
 
-theorem SubH.sub {n h : ℕ} {Γ : Ctx n} {S U : Ty n} (d : SubH h Γ S U) : Sub Γ S U := by
-  induction d with
-  | top T => exact .top T
-  | bot T => exact .bot T
-  | refl_sel x => exact .refl_sel x
-  | bnd _ _ ih1 ih2 => exact .bnd ih1 ih2
-  | all _ ih => exact .all ih
-  | sel_lower x _ ih => exact .sel_lower x ih
-  | sel_upper x _ ih => exact .sel_upper x ih
-  | bad_bounds x _ _ ih1 ih2 => exact .bad_bounds x ih1 ih2
-
 theorem Sub.subH {n : ℕ} {Γ : Ctx n} {S U : Ty n} (d : Sub Γ S U) : ∃ h, SubH h Γ S U := by
   induction d with
   | top T => exact ⟨0, .top T⟩
@@ -76,12 +65,6 @@ theorem Sub.subH {n : ℕ} {Γ : Ctx n} {S U : Ty n} (d : Sub Γ S U) : ∃ h, S
     obtain ⟨h2, d2⟩ := ih2
     exact ⟨max h1 h2 + 1,
       .bad_bounds x (d1.mono (le_max_left _ _)) (d2.mono (le_max_right _ _))⟩
-
-theorem Sub.iff_subH {n : ℕ} {Γ : Ctx n} {S U : Ty n} : Sub Γ S U ↔ ∃ h, SubH h Γ S U :=
-  ⟨Sub.subH, fun ⟨_, d⟩ => d.sub⟩
-
-theorem Sub_iff_SubH {n : ℕ} {Γ : Ctx n} {S U : Ty n} : Sub Γ S U ↔ ∃ h, SubH h Γ S U :=
-  Sub.iff_subH
 
 /-- Renaming along a context morphism keeps the height. -/
 theorem SubH.rename {n h : ℕ} {Γ : Ctx n} {S U : Ty n} (d : SubH h Γ S U) :

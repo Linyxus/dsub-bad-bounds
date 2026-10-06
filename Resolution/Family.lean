@@ -10,12 +10,12 @@ Saturation over a finite family of contexts, with the `∀` rule.
 A family is a finite list of members, each a context `Γ` over some scope together with a
 finite set `F` of types over it (closed under the parts of declarations, holding `⊤`, `⊥` and
 the types of all variables; `∀` types are allowed, their bodies need not be in `F`).  Each
-member carries the two relations of `Resolution/Decide.lean`: judgments `B ⊆ F × ext F` and
-summaries `S ⊆ F × F`.  The rules are those of `Decide.lean`, and one more for judgments, the
+member carries the two relations of `Rules`: judgments `B ⊆ F × ext F` and
+summaries `S ⊆ F × F`.  The rules are those of `Rules`, and one more for judgments, the
 kernel rule: `∀(x:T)B₁ <: ∀(x:T)B₂` follows from a judgment `B₁'' <: B₂''` of a member `Γ''`
 and a context morphism `f : Γ'' → Γ, x:T` taking `B₁''`, `B₂''` to `B₁`, `B₂`.
 
-Saturation from nothing is sound for every family.  It is complete for the judgments singled
+The rules are sound for every family.  Saturated facts are complete for the judgments singled
 out by a predicate `Good` subject to the conditions `Norm`: good judgments only have good
 premises, and every good `∀` step is matched by a judgment of a member, of no greater height.
 -/
@@ -103,14 +103,6 @@ instance (x : Φ.Facts) (i : Fin Φ.size) (P W : Ty (Φ.dim i)) : Decidable (FRu
 instance (x : Φ.Facts) (i : Fin Φ.size) (P T : Ty (Φ.dim i)) : Decidable (FRuleS x i P T) := by
   unfold FRuleS; infer_instance
 
-theorem FRuleB.mono {x y : Φ.Facts} (hxy : Le x y) {i : Fin Φ.size} {P W : Ty (Φ.dim i)}
-    (h : FRuleB x i P W) : FRuleB y i P W :=
-  h.imp (RuleB.mono (hxy i).1 (hxy i).2) (AllRule.mono hxy)
-
-theorem FRuleS.mono {x y : Φ.Facts} (hxy : Le x y) {i : Fin Φ.size} {P T : Ty (Φ.dim i)}
-    (h : FRuleS x i P T) : FRuleS y i P T :=
-  RuleS.mono (hxy i).1 (hxy i).2 h
-
 /-! ### Soundness of the rules -/
 
 /-- The judgments hold and the summaries pop one level, in every member. -/
@@ -121,157 +113,7 @@ theorem AllRule.sound {x : Φ.Facts} (hx : Sound x) {n : ℕ} {Γ : Ctx n} {P W 
   obtain ⟨T, B₁, B₂, rfl, rfl, j, p, hp, f, hf, rfl, rfl⟩ := AllRule.iff.1 h
   exact .all (((hx j).1 p hp).rename hf)
 
-theorem FRuleB.sound {x : Φ.Facts} (hx : Sound x) {i : Fin Φ.size} {P W : Ty (Φ.dim i)}
-    (h : FRuleB x i P W) : Sub (Φ.ctx i) P W :=
-  h.elim (RuleB.sound (hx i).1 (hx i).2) (AllRule.sound hx)
-
-theorem FRuleS.sound {x : Φ.Facts} (hx : Sound x) {i : Fin Φ.size} {P T : Ty (Φ.dim i)}
-    (h : FRuleS x i P T) :
-    ∀ k W, Sub (Φ.ctx i) T (Ty.dN k W) → Sub (Φ.ctx i) P (Ty.dN (k + 1) W) :=
-  RuleS.sound (hx i).1 (hx i).2 h
-
-/-! ### Saturation by iteration -/
-
 variable (Φ)
-
-/-- One round of saturation over all members. -/
-def step (x : Φ.Facts) : Φ.Facts := fun i =>
-  ((Φ.F i ×ˢ ext (Φ.F i)).filter (fun p => FRuleB x i p.1 p.2),
-   (Φ.F i ×ˢ Φ.F i).filter (fun p => FRuleS x i p.1 p.2))
-
-/-- `i` rounds of saturation from nothing. -/
-def iter : ℕ → Φ.Facts
-  | 0 => fun _ => (∅, ∅)
-  | i + 1 => Φ.step (iter i)
-
-/-- The number of facts. -/
-def count (x : Φ.Facts) : ℕ := ∑ i, ((x i).1.card + (x i).2.card)
-
-/-- The number of possible facts: the most rounds saturation can take. -/
-def bound : ℕ := ∑ i, Dsub.bound (Φ.F i)
-
-variable {Φ}
-
-theorem step_mono {x y : Φ.Facts} (h : Le x y) : Le (Φ.step x) (Φ.step y) := by
-  intro i
-  constructor
-  · intro p hp
-    simp only [step, Finset.mem_filter] at hp ⊢
-    exact ⟨hp.1, hp.2.mono h⟩
-  · intro p hp
-    simp only [step, Finset.mem_filter] at hp ⊢
-    exact ⟨hp.1, hp.2.mono h⟩
-
-theorem iter_mono : ∀ i : ℕ, Le (Φ.iter i) (Φ.iter (i + 1))
-  | 0 => fun _ => ⟨Finset.empty_subset _, Finset.empty_subset _⟩
-  | i + 1 => step_mono (iter_mono i)
-
-theorem size_step_le (x : Φ.Facts) : Φ.count (Φ.step x) ≤ Φ.bound := by
-  simp only [count, step, bound, Dsub.bound]
-  exact Finset.sum_le_sum fun i _ => Nat.add_le_add
-    (Finset.card_le_card (Finset.filter_subset _ _))
-    (Finset.card_le_card (Finset.filter_subset _ _))
-
-theorem size_lt_of_le {x y : Φ.Facts} (hle : Le x y) (hne : x ≠ y) : Φ.count x < Φ.count y := by
-  have hi : ∃ i, x i ≠ y i := by
-    by_contra hc
-    push Not at hc
-    exact hne (funext hc)
-  obtain ⟨i, hi⟩ := hi
-  apply Finset.sum_lt_sum
-  · intro j _
-    exact Nat.add_le_add (Finset.card_le_card (hle j).1) (Finset.card_le_card (hle j).2)
-  · refine ⟨i, Finset.mem_univ _, ?_⟩
-    obtain ⟨m1, m2⟩ := hle i
-    by_cases e1 : (x i).1 = (y i).1
-    · have e2 : (x i).2 ≠ (y i).2 := fun e2 => hi (Prod.ext e1 e2)
-      have := Finset.card_lt_card (Finset.ssubset_iff_subset_ne.2 ⟨m2, e2⟩)
-      rw [e1]; omega
-    · have := Finset.card_lt_card (Finset.ssubset_iff_subset_ne.2 ⟨m1, e1⟩)
-      have := Finset.card_le_card m2
-      omega
-
-theorem iter_progress : ∀ i, Φ.iter i = Φ.iter (i + 1) ∨ i + 1 ≤ Φ.count (Φ.iter (i + 1))
-  | 0 => by
-    by_cases e : Φ.iter 0 = Φ.iter 1
-    · exact Or.inl e
-    · have := size_lt_of_le (iter_mono 0) e
-      exact Or.inr (by omega)
-  | i + 1 => by
-    by_cases e : Φ.iter (i + 1) = Φ.iter (i + 2)
-    · exact Or.inl e
-    · have hlt := size_lt_of_le (iter_mono (i + 1)) e
-      rcases iter_progress i with e' | h
-      · exact absurd (show Φ.iter (i + 1) = Φ.iter (i + 2) from
-          show Φ.step (Φ.iter i) = Φ.step (Φ.iter (i + 1)) by rw [← e']) e
-      · exact Or.inr (by omega)
-
-theorem iter_fixed : Φ.step (Φ.iter Φ.bound) = Φ.iter Φ.bound := by
-  rcases iter_progress (Φ := Φ) Φ.bound with e | h
-  · exact e.symm
-  · have := size_step_le (Φ.iter Φ.bound)
-    rw [show Φ.iter (Φ.bound + 1) = Φ.step (Φ.iter Φ.bound) from rfl] at h
-    omega
-
-theorem iter_sound : ∀ i, Sound (Φ.iter i)
-  | 0 => fun _ => ⟨fun _ h => by simp [iter] at h, fun _ h => by simp [iter] at h⟩
-  | i + 1 => by
-    have hx := iter_sound i
-    intro j
-    constructor
-    · intro p hp
-      simp only [iter, step, Finset.mem_filter] at hp
-      exact hp.2.sound hx
-    · intro p hp
-      simp only [iter, step, Finset.mem_filter] at hp
-      exact hp.2.sound hx
-
-variable (Φ)
-
-/-- Saturation that stops at a fixed point, with at most `k` more rounds. -/
-def saturate : ℕ → Φ.Facts → Φ.Facts
-  | 0, x => x
-  | k + 1, x => if Φ.step x = x then x else saturate k (Φ.step x)
-
-/-- The saturated facts: saturation from nothing, for at most `bound` rounds. -/
-def facts : Φ.Facts := Φ.saturate Φ.bound (Φ.iter 0)
-
-variable {Φ}
-
-theorem saturate_iter : ∀ k i, ∃ j,
-    Φ.saturate k (Φ.iter i) = Φ.iter j ∧ (Φ.step (Φ.iter j) = Φ.iter j ∨ j = i + k)
-  | 0, i => ⟨i, rfl, Or.inr rfl⟩
-  | k + 1, i => by
-    by_cases e : Φ.step (Φ.iter i) = Φ.iter i
-    · exact ⟨i, by simp only [saturate, e, ite_true], Or.inl e⟩
-    · obtain ⟨j, h1, h2⟩ := saturate_iter k (i + 1)
-      refine ⟨j, ?_, ?_⟩
-      · simp only [saturate, e, ite_false]; exact h1
-      · rcases h2 with h2 | h2
-        · exact Or.inl h2
-        · exact Or.inr (by omega)
-
-variable (Φ)
-
-/-- Saturation from nothing reaches a fixed point, which is an iterate. -/
-theorem facts_spec : ∃ j, Φ.facts = Φ.iter j ∧ Φ.step (Φ.iter j) = Φ.iter j := by
-  obtain ⟨j, h1, h2⟩ := saturate_iter (Φ := Φ) Φ.bound 0
-  refine ⟨j, h1, ?_⟩
-  rcases h2 with h2 | h2
-  · exact h2
-  · rw [h2, Nat.zero_add]; exact iter_fixed
-
-theorem facts_sound : Sound Φ.facts := by
-  obtain ⟨j, e, -⟩ := Φ.facts_spec
-  rw [e]; exact iter_sound j
-
-/-- Decides the judgment `P <: U` of member `i`: is it a saturated fact? -/
-def famDecide (i : Fin Φ.size) (P U : Ty (Φ.dim i)) : Bool :=
-  decide ((P, U) ∈ (Φ.facts i).1)
-
-theorem famDecide_sound {i : Fin Φ.size} {P U : Ty (Φ.dim i)} (h : Φ.famDecide i P U = true) :
-    Sub (Φ.ctx i) P U :=
-  (Φ.facts_sound i).1 _ (of_decide_eq_true h)
 
 /-! ### Completeness -/
 
@@ -283,25 +125,7 @@ structure Saturated (x : Φ.Facts) : Prop where
 
 variable {Φ}
 
-theorem saturated_of_fixed {x : Φ.Facts} (fix : Φ.step x = x) : Φ.Saturated x where
-  S_sub i p hp := by
-    rw [← fix] at hp
-    simp only [step, Finset.mem_filter, Finset.mem_product] at hp
-    exact hp.1
-  closedB i P hP W hW hr := by
-    rw [← fix]
-    simp only [step, Finset.mem_filter, Finset.mem_product]
-    exact ⟨⟨hP, hW⟩, hr⟩
-  closedS i P hP T hT hr := by
-    rw [← fix]
-    simp only [step, Finset.mem_filter, Finset.mem_product]
-    exact ⟨⟨hP, hT⟩, hr⟩
-
 variable (Φ)
-
-theorem facts_saturated : Φ.Saturated Φ.facts := by
-  obtain ⟨j, e, fix⟩ := Φ.facts_spec
-  rw [e]; exact saturated_of_fixed fix
 
 /-- What completeness needs of a predicate `Good` on the judgments `Γᵢ ⊢ P <: Q` of the
 members: the premises of the rules other than `∀` at a good judgment are good, and a good `∀`
@@ -344,8 +168,8 @@ theorem Saturated.chain_bot {x : Φ.Facts} (hw : Φ.WF) (hs : Φ.Saturated x) (i
   | k + 1 => .succ (hs.closedS i _ (hw.bot_mem i) _ (hw.bot_mem i) (Or.inr (Or.inl ⟨rfl, rfl⟩)))
       (hs.chain_bot hw i k)
 
-/-- Saturated facts hold every good derivable judgment of every member, in the form of
-`Sub.complete`: a judgment `P <: dN k W` is a chain of `k` summaries followed by a judgment. -/
+/-- Saturated facts hold every good derivable judgment of every member: a judgment
+`P <: dN k W` is a chain of `k` summaries followed by a judgment. -/
 theorem Saturated.complete {Good : (i : Fin Φ.size) → Ty (Φ.dim i) → Ty (Φ.dim i) → Prop}
     (hN : Φ.Norm Good) (hw : Φ.WF) {x : Φ.Facts} (hs : Φ.Saturated x) :
     ∀ h i P Q, SubH h (Φ.ctx i) P Q → Good i P Q → P ∈ Φ.F i →
@@ -447,22 +271,6 @@ theorem Saturated.complete {Good : (i : Fin Φ.size) → Ty (Φ.dim i) → Ty (�
       have hR₂ := (hs.S_sub i _ h₂).2
       exact ⟨_, .succ (hs.closedS i _ hP _ hR₂
         (Or.inr (Or.inr (Or.inr ⟨y, BVar.mem_list y, h₀, _, hR₁, h₁, h₂⟩)))) c, hR⟩
-
-/-- The decision is complete on good judgments with their types in the member's sets. -/
-theorem famDecide_complete {Good : (i : Fin Φ.size) → Ty (Φ.dim i) → Ty (Φ.dim i) → Prop}
-    (hN : Φ.Norm Good) (hw : Φ.WF) {i : Fin Φ.size} {P U : Ty (Φ.dim i)} (hg : Good i P U)
-    (hP : P ∈ Φ.F i) (hU : U ∈ ext (Φ.F i)) (D : Sub (Φ.ctx i) P U) :
-    Φ.famDecide i P U = true := by
-  obtain ⟨h, D⟩ := D.subH
-  obtain ⟨R, c, hR⟩ := Φ.facts_saturated.complete hN hw h i P U D hg hP 0 U hU rfl
-  cases c
-  exact decide_eq_true hR
-
-theorem famDecide_iff {Good : (i : Fin Φ.size) → Ty (Φ.dim i) → Ty (Φ.dim i) → Prop}
-    (hN : Φ.Norm Good) (hw : Φ.WF) {i : Fin Φ.size} {P U : Ty (Φ.dim i)} (hg : Good i P U)
-    (hP : P ∈ Φ.F i) (hU : U ∈ ext (Φ.F i)) :
-    Φ.famDecide i P U = true ↔ Sub (Φ.ctx i) P U :=
-  ⟨famDecide_sound Φ, famDecide_complete hN hw hg hP hU⟩
 
 end Family
 
