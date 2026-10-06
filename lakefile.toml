@@ -1,0 +1,24 @@
+name = "task"
+defaultTargets = ["Dsub", "Resolution", "Sanity"]
+
+[leanOptions]
+pp.unicode.fun = true
+autoImplicit = false
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.0"
+
+# Frozen definitions: types, contexts and subtyping of kernel D<: with bad bounds, and the
+# numbering of judgments.
+[[lean_lib]]
+name = "Dsub"
+
+# The agent's proofs. `Resolution.lean` states the two alternatives.
+[[lean_lib]]
+name = "Resolution"
+
+[[lean_lib]]
+name = "Sanity"
